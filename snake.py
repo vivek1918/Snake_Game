@@ -389,12 +389,12 @@ def game_loop(single_player, skin1, skin2=None):
                 draw_snake(snake2, skin2)
             display_score(snake1_length - 1, snake2_length - 1 if not single_player else 0)
 
-            if paused:
-                draw_pause_menu()
+        if paused:
+            draw_pause_menu()
                 
 
-            pygame.display.update()
-            clock.tick(current_speed)
+        pygame.display.update()
+        clock.tick(current_speed)
 
     pygame.quit()
     quit()
