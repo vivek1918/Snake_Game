@@ -55,7 +55,7 @@ This is a classic **Snake Game** developed using **Python** and the **Pygame** l
 
 - **Snake skins**: Change the appearance of the snake by selecting a different skin.
 - **Power-ups**: Different types of power-ups appear during gameplay, such as slowing down the opponent or activating a shield.
-- 
+
 
 ## Contributions
 
