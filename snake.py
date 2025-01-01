@@ -220,11 +220,19 @@ def main_menu():
 
 # [Rest of the code remains the same]
 
+def display_pause_hint():
+    pause_hint = font_style.render("Press P to Pause the Game", True, BLACK)
+    screen.blit(pause_hint, [WIDTH/2 - 100, 10])
+
 
 def game_loop(single_player, skin1, skin2=None):
     game_over = False
     paused = False
     current_speed = SNAKE_SPEED
+    
+    # Track active players
+    player1_active = True
+    player2_active = True
 
     # Initial positions
     x1, y1 = WIDTH / 4, HEIGHT / 2
@@ -260,19 +268,9 @@ def game_loop(single_player, skin1, skin2=None):
 
     spawn_power_up()
 
-    # Initial draw
-    screen.fill(WHITE)
-    pygame.draw.rect(screen, YELLOW, [food_x, food_y, BLOCK_SIZE, BLOCK_SIZE])
-    for obs in obstacles:
-        pygame.draw.rect(screen, GRAY, [obs[0], obs[1], BLOCK_SIZE, BLOCK_SIZE])
-    if power_up_x is not None and power_up_y is not None:
-        color = POWER_UP_SLOW if power_up_type == "slow" else POWER_UP_SHIELD
-        pygame.draw.rect(screen, color, [power_up_x, power_up_y, BLOCK_SIZE, BLOCK_SIZE])
-    draw_snake(snake1, skin1)
-    if not single_player:
-        draw_snake(snake2, skin2)
-    display_score(snake1_length - 1, snake2_length - 1 if not single_player else 0)
-    pygame.display.update()
+    def display_elimination_message(player_number):
+        eliminated_text = font_style.render(f"Player {player_number} Eliminated!", True, RED)
+        screen.blit(eliminated_text, [WIDTH/2 - 100, 100])
 
     while not game_over:
         for event in pygame.event.get():
@@ -282,27 +280,29 @@ def game_loop(single_player, skin1, skin2=None):
                 if event.key == pygame.K_p:
                     paused = not paused
                 if not paused:
-                    if single_player:
-                        # Single player controls remain the same
-                        if event.key == pygame.K_UP and y1_change == 0:
-                            x1_change, y1_change = 0, -BLOCK_SIZE
-                        elif event.key == pygame.K_DOWN and y1_change == 0:
-                            x1_change, y1_change = 0, BLOCK_SIZE
-                        elif event.key == pygame.K_LEFT and x1_change == 0:
-                            x1_change, y1_change = -BLOCK_SIZE, 0
-                        elif event.key == pygame.K_RIGHT and x1_change == 0:
-                            x1_change, y1_change = BLOCK_SIZE, 0
-                    else:
-                        # Multiplayer controls remain the same
-                        if event.key == pygame.K_w and y1_change == 0:
-                            x1_change, y1_change = 0, -BLOCK_SIZE
-                        elif event.key == pygame.K_s and y1_change == 0:
-                            x1_change, y1_change = 0, BLOCK_SIZE
-                        elif event.key == pygame.K_a and x1_change == 0:
-                            x1_change, y1_change = -BLOCK_SIZE, 0
-                        elif event.key == pygame.K_d and x1_change == 0:
-                            x1_change, y1_change = BLOCK_SIZE, 0
-                        
+                    # Player 1 controls (only if active)
+                    if player1_active:
+                        if single_player:
+                            if event.key == pygame.K_UP and y1_change == 0:
+                                x1_change, y1_change = 0, -BLOCK_SIZE
+                            elif event.key == pygame.K_DOWN and y1_change == 0:
+                                x1_change, y1_change = 0, BLOCK_SIZE
+                            elif event.key == pygame.K_LEFT and x1_change == 0:
+                                x1_change, y1_change = -BLOCK_SIZE, 0
+                            elif event.key == pygame.K_RIGHT and x1_change == 0:
+                                x1_change, y1_change = BLOCK_SIZE, 0
+                        else:
+                            if event.key == pygame.K_w and y1_change == 0:
+                                x1_change, y1_change = 0, -BLOCK_SIZE
+                            elif event.key == pygame.K_s and y1_change == 0:
+                                x1_change, y1_change = 0, BLOCK_SIZE
+                            elif event.key == pygame.K_a and x1_change == 0:
+                                x1_change, y1_change = -BLOCK_SIZE, 0
+                            elif event.key == pygame.K_d and x1_change == 0:
+                                x1_change, y1_change = BLOCK_SIZE, 0
+                    
+                    # Player 2 controls (only if active)
+                    if not single_player and player2_active:
                         if event.key == pygame.K_UP and y2_change == 0:
                             x2_change, y2_change = 0, -BLOCK_SIZE
                         elif event.key == pygame.K_DOWN and y2_change == 0:
@@ -312,39 +312,57 @@ def game_loop(single_player, skin1, skin2=None):
                         elif event.key == pygame.K_RIGHT and x2_change == 0:
                             x2_change, y2_change = BLOCK_SIZE, 0
 
-
         if not paused:
-            x1 += x1_change
-            y1 += y1_change
-            if not single_player:
+            # Update Player 1 if active
+            if player1_active:
+                x1 += x1_change
+                y1 += y1_change
+
+                # Check for Player 1 collision with walls
+                if not shield_active["player1"] and (x1 < 0 or x1 >= WIDTH or y1 < 0 or y1 >= HEIGHT):
+                    player1_active = False
+
+                # Check for Player 1 collision with obstacles
+                for obs in obstacles:
+                    if not shield_active["player1"] and (x1, y1) == obs:
+                        player1_active = False
+
+                # Food collision for Player 1
+                if x1 == food_x and y1 == food_y:
+                    food_x = round(random.randrange(0, WIDTH - BLOCK_SIZE) / BLOCK_SIZE) * BLOCK_SIZE
+                    food_y = round(random.randrange(0, HEIGHT - BLOCK_SIZE) / BLOCK_SIZE) * BLOCK_SIZE
+                    snake1_length += 1
+
+            # Update Player 2 if active and in multiplayer mode
+            if not single_player and player2_active:
                 x2 += x2_change
                 y2 += y2_change
 
-            if not shield_active["player1"] and (x1 < 0 or x1 >= WIDTH or y1 < 0 or y1 >= HEIGHT):
-                game_over = True
-            if not single_player and not shield_active["player2"] and (x2 < 0 or x2 >= WIDTH or y2 < 0 or y2 >= HEIGHT):
-                game_over = True
+                # Check for Player 2 collision with walls
+                if not shield_active["player2"] and (x2 < 0 or x2 >= WIDTH or y2 < 0 or y2 >= HEIGHT):
+                    player2_active = False
 
-            for obs in obstacles:
-                if not shield_active["player1"] and (x1, y1) == obs:
-                    game_over = True
-                if not single_player and not shield_active["player2"] and (x2, y2) == obs:
-                    game_over = True
+                # Check for Player 2 collision with obstacles
+                for obs in obstacles:
+                    if not shield_active["player2"] and (x2, y2) == obs:
+                        player2_active = False
 
-            if not single_player and ([x1, y1] in snake2 or [x2, y2] in snake1):
-                game_over = True
+                # Food collision for Player 2
+                if x2 == food_x and y2 == food_y:
+                    food_x = round(random.randrange(0, WIDTH - BLOCK_SIZE) / BLOCK_SIZE) * BLOCK_SIZE
+                    food_y = round(random.randrange(0, HEIGHT - BLOCK_SIZE) / BLOCK_SIZE) * BLOCK_SIZE
+                    snake2_length += 1
 
-            if x1 == food_x and y1 == food_y:
-                food_x = round(random.randrange(0, WIDTH - BLOCK_SIZE) / BLOCK_SIZE) * BLOCK_SIZE
-                food_y = round(random.randrange(0, HEIGHT - BLOCK_SIZE) / BLOCK_SIZE) * BLOCK_SIZE
-                snake1_length += 1
-            if not single_player and x2 == food_x and y2 == food_y:
-                food_x = round(random.randrange(0, WIDTH - BLOCK_SIZE) / BLOCK_SIZE) * BLOCK_SIZE
-                food_y = round(random.randrange(0, HEIGHT - BLOCK_SIZE) / BLOCK_SIZE) * BLOCK_SIZE
-                snake2_length += 1
+            # Check for collisions between snakes
+            if not single_player and player1_active and player2_active:
+                if [x1, y1] in snake2:
+                    player1_active = False
+                if [x2, y2] in snake1:
+                    player2_active = False
 
+            # Power-up handling
             if power_up_x is not None and power_up_y is not None:
-                if x1 == power_up_x and y1 == power_up_y:
+                if player1_active and x1 == power_up_x and y1 == power_up_y:
                     if power_up_type == "slow":
                         current_speed = max(5, current_speed - 5)
                         power_up_timer = 200
@@ -352,7 +370,7 @@ def game_loop(single_player, skin1, skin2=None):
                         shield_active["player1"] = True
                         power_up_timer = 200
                     spawn_power_up()
-                if not single_player and x2 == power_up_x and y2 == power_up_y:
+                if not single_player and player2_active and x2 == power_up_x and y2 == power_up_y:
                     if power_up_type == "slow":
                         current_speed = max(5, current_speed - 5)
                         power_up_timer = 200
@@ -361,22 +379,24 @@ def game_loop(single_player, skin1, skin2=None):
                         power_up_timer = 200
                     spawn_power_up()
 
-            if power_up_timer > 0:
-                power_up_timer -= 1
-                if power_up_timer == 0:
-                    current_speed = SNAKE_SPEED
-                    shield_active["player1"] = False
-                    shield_active["player2"] = False
+            # Update snake positions
+            if player1_active:
+                snake1.append([x1, y1])
+                if len(snake1) > snake1_length:
+                    del snake1[0]
 
-            snake1.append([x1, y1])
-            if not single_player:
+            if not single_player and player2_active:
                 snake2.append([x2, y2])
+                if len(snake2) > snake2_length:
+                    del snake2[0]
 
-            if len(snake1) > snake1_length:
-                del snake1[0]
-            if not single_player and len(snake2) > snake2_length:
-                del snake2[0]
+            # Check if game should end (both players eliminated)
+            if not single_player and not player1_active and not player2_active:
+                game_over = True
+            elif single_player and not player1_active:
+                game_over = True
 
+            # Draw game state
             screen.fill(WHITE)
             pygame.draw.rect(screen, YELLOW, [food_x, food_y, BLOCK_SIZE, BLOCK_SIZE])
             for obs in obstacles:
@@ -384,14 +404,23 @@ def game_loop(single_player, skin1, skin2=None):
             if power_up_x is not None and power_up_y is not None:
                 color = POWER_UP_SLOW if power_up_type == "slow" else POWER_UP_SHIELD
                 pygame.draw.rect(screen, color, [power_up_x, power_up_y, BLOCK_SIZE, BLOCK_SIZE])
-            draw_snake(snake1, skin1)
+            
+            if player1_active:
+                draw_snake(snake1, skin1)
+            else:
+                display_elimination_message(1)
+                
             if not single_player:
-                draw_snake(snake2, skin2)
+                if player2_active:
+                    draw_snake(snake2, skin2)
+                else:
+                    display_elimination_message(2)
+                    
             display_score(snake1_length - 1, snake2_length - 1 if not single_player else 0)
+            display_pause_hint()
 
         if paused:
             draw_pause_menu()
-                
 
         pygame.display.update()
         clock.tick(current_speed)
