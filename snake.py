@@ -404,11 +404,21 @@ def game_loop(single_player, skin1, skin2=None):
             if power_up_x is not None and power_up_y is not None:
                 color = POWER_UP_SLOW if power_up_type == "slow" else POWER_UP_SHIELD
                 pygame.draw.rect(screen, color, [power_up_x, power_up_y, BLOCK_SIZE, BLOCK_SIZE])
+<<<<<<< HEAD
             
             if player1_active:
                 draw_snake(snake1, skin1)
             else:
                 display_elimination_message(1)
+=======
+            draw_snake(snake1, skin1)
+            if not single_player:
+                draw_snake(snake2, skin2)
+            display_score(snake1_length - 1, snake2_length - 1 if not single_player else 0)
+
+        if paused:
+            draw_pause_menu()
+>>>>>>> fa0ddcd8b795fe22ed8a81c18f38b1e95711a82f
                 
             if not single_player:
                 if player2_active:
@@ -419,9 +429,12 @@ def game_loop(single_player, skin1, skin2=None):
             display_score(snake1_length - 1, snake2_length - 1 if not single_player else 0)
             display_pause_hint()
 
+<<<<<<< HEAD
         if paused:
             draw_pause_menu()
 
+=======
+>>>>>>> fa0ddcd8b795fe22ed8a81c18f38b1e95711a82f
         pygame.display.update()
         clock.tick(current_speed)
 
